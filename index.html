@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semi Entropy — Reality is a Bug</title>
+  <meta name="description" content="Semi Entropy. We don't verify designs. We negotiate with entropy itself." />
+  <meta name="theme-color" content="#020205" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2300f0ff'/><text x='50' y='68' font-size='42' font-family='monospace' font-weight='700' text-anchor='middle' fill='%23000000'>∑</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    :root {
+      --bg: #020205;
+      --text: #e8f4ff;
+      --muted: #6b7c8f;
+      --cyan: #00f0ff;
+      --magenta: #ff00aa;
+      --amber: #ffaa00;
+      --violet: #8b5cf6;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    #cursor {
+      position: fixed;
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--cyan);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99999;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: difference;
+      transition: width 0.2s, height 0.2s, background 0.2s;
+    }
+    #cursor.big {
+      width: 54px;
+      height: 54px;
+      background: rgba(0, 240, 255, 0.12);
+      border-color: transparent;
+    }
+    #cursor-dot {
+      position: fixed;
+      width: 4px;
+      height: 4px;
+      background: var(--cyan);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99999;
+      transform: translate(-50%, -50%);
+    }
+
+    #webgl {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .glitch-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 240, 255, 0.03) 2px,
+        rgba(0, 240, 255, 0.03) 4px
+      );
+      mix-blend-mode: overlay;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.04;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .content {
+      position: relative;
+      z-index: 10;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1.4rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      mix-blend-mode: difference;
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.04em;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--cyan), var(--magenta));
+      display: grid;
+      place-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #000;
+    }
+    .nav-right {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+    .nav-right a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: color 0.25s;
+    }
+    .nav-right a:hover { color: var(--cyan); }
+
+    .hero {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 6rem 1.5rem 4rem;
+      position: relative;
+    }
+
+    .status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      opacity: 0;
+    }
+    .status::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      background: var(--cyan);
+      border-radius: 50%;
+      animation: blink 1.4s infinite;
+      box-shadow: 0 0 12px var(--cyan);
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    h1 {
+      font-size: clamp(2.8rem, 8.5vw, 6.8rem);
+      font-weight: 700;
+      letter-spacing: -0.05em;
+      line-height: 0.95;
+      max-width: 12ch;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+    }
+    h1 .glitch-text {
+      position: relative;
+      display: inline-block;
+    }
+    h1 .glitch-text::before,
+    h1 .glitch-text::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.8;
+    }
+    h1 .glitch-text::before {
+      color: var(--cyan);
+      animation: glitch1 2.5s infinite linear alternate-reverse;
+      clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+    }
+    h1 .glitch-text::after {
+      color: var(--magenta);
+      animation: glitch2 2.1s infinite linear alternate-reverse;
+      clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+    }
+    @keyframes glitch1 {
+      0% { transform: translate(0); }
+      20% { transform: translate(-3px, 2px); }
+      40% { transform: translate(3px, -1px); }
+      60% { transform: translate(-2px, 1px); }
+      80% { transform: translate(2px, -2px); }
+      100% { transform: translate(0); }
+    }
+    @keyframes glitch2 {
+      0% { transform: translate(0); }
+      20% { transform: translate(3px, -2px); }
+      40% { transform: translate(-3px, 1px); }
+      60% { transform: translate(2px, -1px); }
+      80% { transform: translate(-2px, 2px); }
+      100% { transform: translate(0); }
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2.2vw, 1.3rem);
+      color: var(--muted);
+      max-width: 34rem;
+      margin-bottom: 2.8rem;
+      line-height: 1.55;
+      opacity: 0;
+    }
+
+    .cta-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      opacity: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 1.9rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      border: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #000;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.3);
+    }
+    .btn-primary:hover {
+      transform: scale(1.05) translateY(-2px);
+      box-shadow: 0 0 60px rgba(0, 240, 255, 0.5);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .btn-ghost:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: rgba(0, 240, 255, 0.05);
+    }
+
+    .entropy-meter {
+      position: fixed;
+      bottom: 2rem;
+      left: 2rem;
+      z-index: 50;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      opacity: 0.7;
+    }
+    .meter-bar {
+      width: 120px;
+      height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .meter-fill {
+      height: 100%;
+      width: 67%;
+      background: linear-gradient(90deg, var(--cyan), var(--magenta));
+      transition: width 0.8s;
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    section {
+      position: relative;
+      z-index: 10;
+      padding: 8rem 1.5rem;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 1rem;
+    }
+    .section-title {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1.2rem;
+      max-width: 16ch;
+    }
+    .section-desc {
+      color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 36rem;
+      margin-bottom: 3.5rem;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+    .card {
+      background: rgba(10, 12, 20, 0.7);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 1.2rem;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s;
+      backdrop-filter: blur(12px);
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(400px circle at var(--x, 50%) var(--y, 50%), rgba(0, 240, 255, 0.12), transparent 50%);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .card:hover::before { opacity: 1; }
+    .card:hover {
+      border-color: rgba(0, 240, 255, 0.3);
+      transform: translateY(-6px) scale(1.01);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0, 240, 255, 0.1);
+    }
+    .card-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--magenta);
+      margin-bottom: 1rem;
+      letter-spacing: 0.1em;
+    }
+    .card h3 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 0.7rem;
+      letter-spacing: -0.02em;
+    }
+    .card p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+    }
+
+    .manifesto {
+      text-align: center;
+      padding: 10rem 1.5rem;
+    }
+    .manifesto-text {
+      font-size: clamp(1.6rem, 4vw, 2.8rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.3;
+      max-width: 18ch;
+      margin: 0 auto 2rem;
+    }
+    .manifesto-text span {
+      background: linear-gradient(90deg, var(--cyan), var(--magenta), var(--amber));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .final-cta {
+      text-align: center;
+      padding: 8rem 1.5rem 10rem;
+    }
+    .final-cta h2 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.2rem;
+    }
+    .final-cta p {
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+      font-size: 1.1rem;
+    }
+
+    footer {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      position: relative;
+      z-index: 10;
+    }
+
+    .terminal {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 280px;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--cyan);
+      padding: 0.8rem;
+      z-index: 50;
+      opacity: 0.6;
+      backdrop-filter: blur(8px);
+      max-height: 120px;
+      overflow: hidden;
+    }
+    .terminal-line {
+      opacity: 0.7;
+      margin-bottom: 0.25rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .terminal-line:last-child {
+      opacity: 1;
+      color: #fff;
+    }
+
+    @media (max-width: 700px) {
+      .entropy-meter, .terminal { display: none; }
+      nav { padding: 1rem 1.2rem; }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+  </style>
+</head>
+<body>
+  <div id="cursor"></div>
+  <div id="cursor-dot"></div>
+  <canvas id="webgl"></canvas>
+  <div class="glitch-overlay" id="glitch"></div>
+
+  <div class="entropy-meter">
+    <div>RESIDUAL ENTROPY</div>
+    <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
+    <div id="meterValue">H = 0.670</div>
+  </div>
+
+  <div class="terminal" id="terminal">
+    <div class="terminal-line">> boot sequence initiated</div>
+    <div class="terminal-line">> loading entropy core...</div>
+    <div class="terminal-line">> reality.consistency = unstable</div>
+  </div>
+
+  <nav>
+    <a href="#" class="logo">
+      <span class="logo-mark">∑</span>
+      Semi Entropy
+    </a>
+    <div class="nav-right">
+      <a href="#doctrine">Doctrine</a>
+      <a href="#weapons">Weapons</a>
+      <a href="quantum.html">Quantum Sketches</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </nav>
+
+  <div class="content">
+    <header class="hero">
+      <div class="status" id="status">SYSTEM ONLINE · ENTROPY PROTOCOL ACTIVE</div>
+      <h1>
+        <span class="glitch-text" data-text="We don't">We don't</span><br>
+        <span class="glitch-text" data-text="verify chips.">verify chips.</span><br>
+        <span class="glitch-text" data-text="We negotiate">We negotiate</span><br>
+        <span class="glitch-text" data-text="with chaos.">with chaos.</span>
+      </h1>
+      <p class="hero-sub">
+        Semi Entropy builds AI systems that treat design verification as a conversation with uncertainty itself. We reduce entropy until silicon has no choice but to behave.
+      </p>
+      <div class="cta-row">
+        <a href="#contact" class="btn btn-primary">Initiate contact</a>
+        <a href="#doctrine" class="btn btn-ghost">Read the doctrine</a>
+      </div>
+    </header>
+
+    <section id="doctrine">
+      <div class="container">
+        <div class="label reveal">THE DOCTRINE</div>
+        <h2 class="section-title reveal">Reality is a bug. We are the patch.</h2>
+        <p class="section-desc reveal">
+          Traditional verification assumes the universe is deterministic. We know better. Every design is a probabilistic battlefield. Our systems don't just test — they hunt residual possibility until it surrenders.
+        </p>
+
+        <div class="grid">
+          <div class="card reveal">
+            <div class="card-num">01 — OBSERVE</div>
+            <h3>Semantic Ingestion</h3>
+            <p>Waveforms, coverage, RTL, assertions — everything becomes a living probability field. We don't parse code. We map uncertainty.</p>
+          </div>
+          <div class="card reveal">
+            <div class="card-num">02 — MEASURE</div>
+            <h3>Entropy Quantification</h3>
+            <p>What can this design still do that we haven't constrained? We compute residual entropy as a real-time threat metric.</p>
+          </div>
+          <div class="card reveal">
+            <div class="card-num">03 — ATTACK</div>
+            <h3>Generative Assault</h3>
+            <p>RL agents + formal engines + generative models launch coordinated strikes on the highest-value unexplored states.</p>
+          </div>
+          <div class="card reveal">
+            <div class="card-num">04 — COLLAPSE</div>
+            <h3>Certainty Extraction</h3>
+            <p>Results feed back. The probability space shrinks. The design is forced into a smaller and smaller set of possible behaviors.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="manifesto">
+      <div class="manifesto-text reveal">
+        Most teams fight bugs.<br>
+        <span>We starve them of oxygen.</span>
+      </div>
+    </section>
+
+    <section id="weapons">
+      <div class="container">
+        <div class="label reveal">ARMORY</div>
+        <h2 class="section-title reveal">Weapons against uncertainty</h2>
+        <p class="section-desc reveal">
+          Not tools. Instruments of inevitability.
+        </p>
+
+        <div class="grid">
+          <div class="card reveal">
+            <div class="card-num">WEAPON 01</div>
+            <h3>Coverage Entropy Engine</h3>
+            <p>Treats coverage as pure information theory. Maximizes bits of certainty extracted per simulation cycle.</p>
+          </div>
+          <div class="card reveal">
+            <div class="card-num">WEAPON 02</div>
+            <h3>Hybrid Formal Swarm</h3>
+            <p>Formal solvers + learned abstractions that scale proofs to full-chip complexity without human intervention.</p>
+          </div>
+          <div class="card reveal">
+            <div class="card-num">WEAPON 03</div>
+            <h3>Intent Collapse Models</h3>
+            <p>LLMs that understand what the designer meant, not just what they wrote. Spec-to-property in seconds.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="text-align:center; padding: 6rem 1.5rem;">
+      <div class="label reveal">RESEARCH</div>
+      <h2 class="section-title reveal" style="margin: 0 auto 1.2rem; max-width: 14ch;">Quantum Sketches</h2>
+      <p class="section-desc reveal" style="margin: 0 auto 2rem;">
+        Visual explorations of superposition, entanglement, and entropy collapse — applied to the problem of verifying silicon.
+      </p>
+      <a href="quantum.html" class="btn btn-primary reveal" style="display:inline-flex;">Enter the sketches →</a>
+    </section>
+
+    <section class="final-cta" id="contact">
+      <h2 class="reveal">The entropy is rising.</h2>
+      <p class="reveal">Your next design will either negotiate with us, or negotiate with failure.</p>
+      <a href="mailto:hello@semi-entropy.ai" class="btn btn-primary reveal">hello@semi-entropy.ai</a>
+    </section>
+
+    <footer>
+      <div>Semi Entropy · We negotiate with chaos · © 2026</div>
+    </footer>
+  </div>
+
+  <script>
+    // Cursor
+    const cursor = document.getElementById('cursor');
+    const cursorDot = document.getElementById('cursor-dot');
+    let mx = 0, my = 0, cx = 0, cy = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX;
+      my = e.clientY;
+      cursorDot.style.left = mx + 'px';
+      cursorDot.style.top = my + 'px';
+    });
+
+    (function animCursor() {
+      cx += (mx - cx) * 0.15;
+      cy += (my - cy) * 0.15;
+      cursor.style.left = cx + 'px';
+      cursor.style.top = cy + 'px';
+      requestAnimationFrame(animCursor);
+    })();
+
+    document.querySelectorAll('a, button, .card').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add('big'));
+      el.addEventListener('mouseleave', () => cursor.classList.remove('big'));
+    });
+
+    // Three.js
+    const canvas = document.getElementById('webgl');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 28;
+
+    const count = 1800;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+
+    const colorA = new THREE.Color(0x00f0ff);
+    const colorB = new THREE.Color(0xff00aa);
+    const colorC = new THREE.Color(0x8b5cf6);
+
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3;
+      const r = 18 + Math.random() * 22;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      positions[i3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i3 + 2] = r * Math.cos(phi);
+
+      const c = Math.random() > 0.6 ? colorA : (Math.random() > 0.5 ? colorB : colorC);
+      colors[i3] = c.r;
+      colors[i3 + 1] = c.g;
+      colors[i3 + 2] = c.b;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const mat = new THREE.PointsMaterial({
+      size: 0.15,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true
+    });
+
+    const points = new THREE.Points(geo, mat);
+    scene.add(points);
+
+    const core = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(2.2, 1),
+      new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.35 })
+    );
+    scene.add(core);
+
+    const core2 = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1.4, 0),
+      new THREE.MeshBasicMaterial({ color: 0xff00aa, wireframe: true, transparent: true, opacity: 0.5 })
+    );
+    scene.add(core2);
+
+    let targetRotX = 0, targetRotY = 0;
+    document.addEventListener('mousemove', e => {
+      targetRotY = (e.clientX / window.innerWidth - 0.5) * 0.8;
+      targetRotX = (e.clientY / window.innerHeight - 0.5) * 0.5;
+    });
+
+    const clock = new THREE.Clock();
+    function animate() {
+      const t = clock.getElapsedTime();
+
+      points.rotation.y = t * 0.04;
+      points.rotation.x = Math.sin(t * 0.1) * 0.1;
+
+      core.rotation.x = t * 0.2;
+      core.rotation.y = t * 0.3;
+      core2.rotation.x = -t * 0.4;
+      core2.rotation.z = t * 0.25;
+
+      const s = 1 + Math.sin(t * 1.5) * 0.08;
+      core.scale.set(s, s, s);
+
+      camera.position.x += (targetRotY * 4 - camera.position.x) * 0.03;
+      camera.position.y += (-targetRotX * 3 - camera.position.y) * 0.03;
+      camera.lookAt(0, 0, 0);
+
+      const pos = geo.attributes.position.array;
+      for (let i = 0; i < count; i++) {
+        pos[i * 3 + 1] += Math.sin(t * 0.8 + i * 0.1) * 0.002;
+      }
+      geo.attributes.position.needsUpdate = true;
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Entropy meter
+    let entropy = 0.67;
+    setInterval(() => {
+      entropy += (Math.random() - 0.48) * 0.03;
+      entropy = Math.max(0.12, Math.min(0.95, entropy));
+      document.getElementById('meterFill').style.width = (entropy * 100) + '%';
+      document.getElementById('meterValue').textContent = 'H = ' + entropy.toFixed(3);
+    }, 1200);
+
+    // Terminal
+    const logs = [
+      '> scanning residual states...',
+      '> probability collapse: 0.034',
+      '> formal engine: property holds',
+      '> RL agent exploring corner case',
+      '> entropy reduced by 0.012',
+      '> coverage vector updated',
+      '> anomaly detected in path 0x7f3a',
+      '> generating counter-stimulus...',
+      '> assertion triggered → analyzing',
+      '> certainty extraction complete',
+      '> new high-value state found',
+      '> swarm converging on cluster'
+    ];
+    const term = document.getElementById('terminal');
+    setInterval(() => {
+      const line = document.createElement('div');
+      line.className = 'terminal-line';
+      line.textContent = logs[Math.floor(Math.random() * logs.length)];
+      term.appendChild(line);
+      if (term.children.length > 5) term.removeChild(term.firstChild);
+    }, 2200);
+
+    // Glitch
+    const glitch = document.getElementById('glitch');
+    setInterval(() => {
+      if (Math.random() > 0.92) {
+        glitch.style.opacity = 0.4;
+        setTimeout(() => glitch.style.opacity = 0, 80 + Math.random() * 120);
+      }
+    }, 3000);
+
+    // GSAP
+    gsap.registerPlugin(ScrollTrigger);
+
+    gsap.to('#status', { opacity: 1, duration: 1, delay: 0.3 });
+    gsap.to('h1', { opacity: 1, duration: 1.1, delay: 0.5, ease: 'power3.out' });
+    gsap.to('.hero-sub', { opacity: 1, duration: 1, delay: 0.8 });
+    gsap.to('.cta-row', { opacity: 1, duration: 1, delay: 1.0 });
+
+    gsap.utils.toArray('.reveal').forEach(el => {
+      gsap.fromTo(el,
+        { opacity: 0, y: 40 },
+        {
+          opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 88%' }
+        }
+      );
+    });
+
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--x', (e.clientX - r.left) + 'px');
+        card.style.setProperty('--y', (e.clientY - r.top) + 'px');
+      });
+    });
+  </script>
+</body>
+</html>
