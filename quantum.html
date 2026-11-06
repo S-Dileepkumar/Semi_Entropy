@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quantum Sketches — Semi Entropy</title>
+  <meta name="description" content="Quantum Sketches by Semi Entropy. Visual explorations of superposition, entanglement, and entropy collapse in silicon." />
+  <meta name="theme-color" content="#020205" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2300f0ff'/><text x='50' y='68' font-size='42' font-family='monospace' font-weight='700' text-anchor='middle' fill='%23000000'>∑</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    :root {
+      --bg: #020205;
+      --text: #e8f4ff;
+      --muted: #6b7c8f;
+      --cyan: #00f0ff;
+      --magenta: #ff00aa;
+      --amber: #ffaa00;
+      --violet: #8b5cf6;
+      --green: #00ff9d;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      overflow-x: hidden;
+      min-height: 100%;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.035;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1.3rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(2, 2, 5, 0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.03em;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--cyan), var(--magenta));
+      display: grid;
+      place-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #000;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.8rem;
+      align-items: center;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: color 0.25s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--cyan); }
+    .back-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.25s;
+    }
+    .back-link:hover { color: var(--cyan); }
+
+    .hero {
+      padding: 9rem 1.5rem 5rem;
+      text-align: center;
+      position: relative;
+    }
+    .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 1.2rem;
+    }
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 1.3rem;
+    }
+    h1 span {
+      background: linear-gradient(90deg, var(--cyan), var(--violet), var(--magenta));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 1.15rem;
+      max-width: 38rem;
+      margin: 0 auto 2.5rem;
+      line-height: 1.6;
+    }
+
+    /* Sketch grid */
+    .sketches {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem 6rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.75rem;
+    }
+
+    .sketch-card {
+      background: rgba(10, 12, 22, 0.8);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 1.3rem;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+    }
+    .sketch-card:hover {
+      border-color: rgba(0, 240, 255, 0.25);
+      transform: translateY(-6px);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4), 0 0 40px rgba(0, 240, 255, 0.08);
+    }
+
+    .sketch-visual {
+      height: 260px;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, rgba(0, 240, 255, 0.06) 0%, transparent 70%);
+      display: grid;
+      place-items: center;
+    }
+
+    .sketch-info {
+      padding: 1.6rem 1.7rem 1.8rem;
+    }
+    .sketch-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      color: var(--magenta);
+      margin-bottom: 0.6rem;
+    }
+    .sketch-info h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.55rem;
+      letter-spacing: -0.02em;
+    }
+    .sketch-info p {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    /* ========== QUANTUM SKETCHES (CSS / SVG) ========== */
+
+    /* 1. Superposition */
+    .superposition {
+      width: 180px;
+      height: 180px;
+      position: relative;
+    }
+    .superposition .orbit {
+      position: absolute;
+      inset: 0;
+      border: 1.5px solid rgba(0, 240, 255, 0.25);
+      border-radius: 50%;
+      animation: spin 12s linear infinite;
+    }
+    .superposition .orbit:nth-child(2) {
+      inset: 25px;
+      border-color: rgba(255, 0, 170, 0.3);
+      animation-duration: 8s;
+      animation-direction: reverse;
+    }
+    .superposition .orbit:nth-child(3) {
+      inset: 50px;
+      border-color: rgba(139, 92, 246, 0.35);
+      animation-duration: 5s;
+    }
+    .superposition .core {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 28px;
+      height: 28px;
+      background: radial-gradient(circle, #fff 0%, var(--cyan) 40%, transparent 70%);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 30px var(--cyan), 0 0 60px rgba(0, 240, 255, 0.4);
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    .superposition .state {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+    }
+    .superposition .state:nth-child(4) { top: 8px; left: 50%; transform: translateX(-50%); }
+    .superposition .state:nth-child(5) { bottom: 8px; left: 50%; transform: translateX(-50%); background: var(--magenta); box-shadow: 0 0 12px var(--magenta); }
+    .superposition .state:nth-child(6) { top: 50%; left: 8px; transform: translateY(-50%); background: var(--violet); box-shadow: 0 0 12px var(--violet); }
+    .superposition .state:nth-child(7) { top: 50%; right: 8px; transform: translateY(-50%); background: var(--amber); box-shadow: 0 0 12px var(--amber); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(1.25); opacity: 0.8; }
+    }
+
+    /* 2. Entanglement */
+    .entanglement {
+      width: 220px;
+      height: 160px;
+      position: relative;
+    }
+    .entanglement .qubit {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 2px solid;
+      display: grid;
+      place-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .entanglement .q1 {
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+      animation: floatY 3s ease-in-out infinite;
+    }
+    .entanglement .q2 {
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-color: var(--magenta);
+      color: var(--magenta);
+      box-shadow: 0 0 20px rgba(255, 0, 170, 0.3);
+      animation: floatY 3s ease-in-out infinite 0.5s;
+    }
+    .entanglement .link {
+      position: absolute;
+      top: 50%;
+      left: 70px;
+      right: 70px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--cyan), var(--violet), var(--magenta));
+      transform: translateY(-50%);
+      opacity: 0.6;
+    }
+    .entanglement .link::before,
+    .entanglement .link::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      top: 50%;
+      transform: translateY(-50%);
+      animation: travel 2.2s linear infinite;
+    }
+    .entanglement .link::before {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      left: 0;
+    }
+    .entanglement .link::after {
+      background: var(--magenta);
+      box-shadow: 0 0 10px var(--magenta);
+      right: 0;
+      animation-delay: 1.1s;
+    }
+    @keyframes floatY {
+      0%, 100% { transform: translateY(-50%); }
+      50% { transform: translateY(calc(-50% - 8px)); }
+    }
+    @keyframes travel {
+      0% { left: 0; opacity: 1; }
+      100% { left: calc(100% - 8px); opacity: 0.3; }
+    }
+
+    /* 3. Entropy Collapse */
+    .collapse {
+      width: 200px;
+      height: 180px;
+      position: relative;
+    }
+    .collapse .wave {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      border: 1.5px solid;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.6;
+      animation: collapseRing 3.5s ease-out infinite;
+    }
+    .collapse .wave:nth-child(1) { width: 160px; height: 160px; border-color: var(--cyan); animation-delay: 0s; }
+    .collapse .wave:nth-child(2) { width: 120px; height: 120px; border-color: var(--violet); animation-delay: 0.4s; }
+    .collapse .wave:nth-child(3) { width: 80px; height: 80px; border-color: var(--magenta); animation-delay: 0.8s; }
+    .collapse .center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 25px #fff, 0 0 50px var(--cyan);
+      animation: collapsePulse 3.5s ease-in-out infinite;
+    }
+    @keyframes collapseRing {
+      0% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+      30% { opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+    }
+    @keyframes collapsePulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.4); }
+    }
+
+    /* 4. Bloch Sphere sketch */
+    .bloch {
+      width: 180px;
+      height: 180px;
+      position: relative;
+    }
+    .bloch svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .bloch .sphere {
+      fill: none;
+      stroke: rgba(0, 240, 255, 0.3);
+      stroke-width: 1.5;
+    }
+    .bloch .axis {
+      stroke: rgba(255,255,255,0.2);
+      stroke-width: 1;
+    }
+    .bloch .vector {
+      stroke: var(--magenta);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 6px var(--magenta));
+      animation: vectorSwing 4s ease-in-out infinite;
+      transform-origin: 90px 90px;
+    }
+    @keyframes vectorSwing {
+      0%, 100% { transform: rotate(25deg); }
+      50% { transform: rotate(-35deg); }
+    }
+
+    /* 5. Quantum Tunnel */
+    .tunnel {
+      width: 220px;
+      height: 140px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+    .tunnel .barrier {
+      width: 28px;
+      height: 100px;
+      background: linear-gradient(180deg, transparent, rgba(255, 0, 170, 0.4), transparent);
+      border-left: 1px solid rgba(255, 0, 170, 0.5);
+      border-right: 1px solid rgba(255, 0, 170, 0.5);
+      position: relative;
+      z-index: 2;
+    }
+    .tunnel .wave-left,
+    .tunnel .wave-right {
+      flex: 1;
+      height: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .tunnel .wave-left::before,
+    .tunnel .wave-right::before {
+      content: '';
+      position: absolute;
+      width: 200%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 8px,
+        var(--cyan) 8px,
+        var(--cyan) 10px
+      );
+      opacity: 0.5;
+      animation: waveMove 1.5s linear infinite;
+    }
+    .tunnel .wave-right::before {
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 8px,
+        var(--green) 8px,
+        var(--green) 10px
+      );
+      opacity: 0.35;
+      animation-duration: 1.8s;
+    }
+    @keyframes waveMove {
+      to { transform: translateX(-20px); }
+    }
+
+    /* 6. Measurement */
+    .measure {
+      width: 180px;
+      height: 160px;
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+    .measure .cloud {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%);
+      position: relative;
+      animation: cloudPulse 3s ease-in-out infinite;
+    }
+    .measure .dot {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--cyan);
+      animation: orbitDot 4s linear infinite;
+    }
+    .measure .result {
+      position: absolute;
+      bottom: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--green);
+      opacity: 0;
+      animation: showResult 4s ease-in-out infinite;
+    }
+    @keyframes cloudPulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+    @keyframes orbitDot {
+      0% { transform: rotate(0deg) translateX(45px) rotate(0deg); opacity: 1; }
+      70% { opacity: 1; }
+      100% { transform: rotate(360deg) translateX(45px) rotate(-360deg); opacity: 0; }
+    }
+    @keyframes showResult {
+      0%, 60% { opacity: 0; }
+      70%, 90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* Footer */
+    footer {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    footer a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    @media (max-width: 600px) {
+      .sketches {
+        grid-template-columns: 1fr;
+      }
+      nav { padding: 1rem 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="logo">
+      <span class="logo-mark">∑</span>
+      Semi Entropy
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="back-link">← Main</a>
+      <a href="quantum.html" class="active">Quantum Sketches</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="label">VISUAL RESEARCH</div>
+    <h1>Quantum <span>Sketches</span></h1>
+    <p>
+      Exploratory visual studies of quantum phenomena through the lens of entropy, verification, and silicon. 
+      These are not diagrams of existing hardware — they are conceptual weapons for thinking about uncertainty.
+    </p>
+  </header>
+
+  <div class="sketches">
+    <!-- 1 -->
+    <article class="sketch-card reveal">
+      <div class="sketch-visual">
+        <div class="superposition">
+          <div class="orbit"></div>
+          <div class="orbit"></div>
+          <div class="orbit"></div>
+          <div class="state"></div>
+          <div class="state"></div>
+          <div class="state"></div>
+          <div class="state"></div>
+          <div class="core"></div>
+        </div>
+      </div>
+      <div class="sketch-info">
+        <div class="sketch-tag">SKETCH 01 — SUPERPOSITION</div>
+        <h3>Design State Superposition</h3>
+        <p>A design exists in many possible behavioral states until verification forces collapse. Each orbit represents a family of unresolved possibilities.</p>
+      </div>
+    </article>
+
+    <!-- 2 -->
+    <article class="sketch-card reveal">
+      <div class="sketch-visual">
+        <div class="entanglement">
+          <div class="qubit q1">|ψ⟩</div>
+          <div class="link"></div>
+          <div class="qubit q2">|φ⟩</div>
+        </div>
+      </div>
+      <div class="sketch-info">
+        <div class="sketch-tag">SKETCH 02 — ENTANGLEMENT</div>
+        <h3>Property Entanglement</h3>
+        <p>When two formal properties become correlated, measuring one instantly constrains the other. Verification can exploit this non-local certainty.</p>
+      </div>
+    </article>
+
+    <!-- 3 -->
+    <article class="sketch-card reveal">
+      <div class="sketch-visual">
+        <div class="collapse">
+          <div class="wave"></div>
+          <div class="wave"></div>
+          <div class="wave"></div>
+          <div class="center"></div>
+        </div>
+      </div>
+      <div class="sketch-info">
+        <div class="sketch-tag">SKETCH 03 — COLLAPSE</div>
+        <h3>Entropy Collapse Event</h3>
+        <p>Every successful formal proof or high-value coverage hit is a collapse. Possibility space shrinks. Residual entropy drops.</p>
+      </div>
+    </article>
+
+    <!-- 4 -->
+    <article class="sketch-card reveal">
+      <div class="sketch-visual">
+        <div class="bloch">
+          <svg viewBox="0 0 180 180">
+            <!-- sphere -->
+            <ellipse class="sphere" cx="90" cy="90" rx="70" ry="70" />
+            <ellipse class="sphere" cx="90" cy="90" rx="70" ry="25" />
+            <ellipse class="sphere" cx="90" cy="90" rx="25" ry="70" transform="rotate(90 90 90)" />
+            <!-- axes -->
+            <line class="axis" x1="90" y1="15" x2="90" y2="165" />
+            <line class="axis" x1="15" y1="90" x2="165" y2="90" />
+            <!-- state vector -->
+            <line class="vector" x1="90" y1="90" x2="90" y2="30" />
+            <circle cx="90" cy="30" r="4" fill="#ff00aa" />
+          </svg>
+        </div>
+      </div>
+      <div class="sketch-info">
+        <div class="sketch-tag">SKETCH 04 — BLOCH</div>
+        <h3>State Vector on Bloch Sphere</h3>
+        <p>Any pure quantum state lives on the surface. In verification terms: the current belief about a design’s remaining freedom.</p>
+      </div>
+    </article>
+
+    <!-- 5 -->
+    <article class="sketch-card reveal">
+      <div class="sketch-visual">
+        <div class="tunnel">
+          <div class="wave-left"></div>
+          <div class="barrier"></div>
+          <div class="wave-right"></div>
+        </div>
+      </div>
+      <div class="sketch-info">
+        <div class="sketch-tag">SKETCH 05 — TUNNELING</div>
+        <h3>Barrier Tunneling</h3>
+        <p>Some bugs exist behind energy barriers that classical random testing almost never crosses. Quantum-inspired search can tunnel through.</p>
+      </div>
+    </article>
+
+    <!-- 6 -->
+    <article class="sketch-card reveal">
+      <div class="sketch-visual">
+        <div class="measure">
+          <div class="cloud">
+            <div class="dot"></div>
+          </div>
+          <div class="result">|0⟩ or |1⟩</div>
+        </div>
+      </div>
+      <div class="sketch-info">
+        <div class="sketch-tag">SKETCH 06 — MEASUREMENT</div>
+        <h3>Observation Forces Reality</h3>
+        <p>Until you measure, the system holds multiple outcomes. Every simulation, assertion, or formal query is a measurement that collapses possibility.</p>
+      </div>
+    </article>
+  </div>
+
+  <footer>
+    <p>
+      Quantum Sketches · <a href="index.html">Semi Entropy</a> · Conceptual research · © 2026
+    </p>
+  </footer>
+
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+
+    gsap.utils.toArray('.reveal').forEach((el, i) => {
+      gsap.fromTo(el,
+        { opacity: 0, y: 40 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.85,
+          delay: i * 0.08,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 90%'
+          }
+        }
+      );
+    });
+  </script>
+</body>
+</html>
