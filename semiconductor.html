@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semiconductor — Semi Entropy</title>
+  <meta name="description" content="How Semi Entropy attacks uncertainty at the transistor, block, and full-chip level." />
+  <meta name="theme-color" content="#020205" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2300f0ff'/><text x='50' y='68' font-size='42' font-family='monospace' font-weight='700' text-anchor='middle' fill='%23000000'>∑</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    :root {
+      --bg: #020205;
+      --text: #e8f4ff;
+      --muted: #6b7c8f;
+      --cyan: #00f0ff;
+      --magenta: #ff00aa;
+      --amber: #ffaa00;
+      --violet: #8b5cf6;
+      --green: #00ff9d;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      overflow-x: hidden;
+      min-height: 100%;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.035;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 1.3rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(2, 2, 5, 0.75);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.03em;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .logo-mark {
+      width: 30px; height: 30px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--cyan), var(--magenta));
+      display: grid;
+      place-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #000;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.6rem;
+      align-items: center;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: color 0.25s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--cyan); }
+    .back-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--cyan); }
+
+    .hero {
+      padding: 9rem 1.5rem 4.5rem;
+      text-align: center;
+    }
+    .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 1.2rem;
+    }
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 1.3rem;
+    }
+    h1 span {
+      background: linear-gradient(90deg, var(--cyan), var(--violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 1.12rem;
+      max-width: 40rem;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Stack layers */
+    .stack {
+      max-width: 1000px;
+      margin: 0 auto 5rem;
+      padding: 0 1.5rem;
+    }
+    .layer {
+      background: rgba(10, 12, 22, 0.75);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 1.1rem;
+      padding: 1.8rem 2rem;
+      margin-bottom: 1.1rem;
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 1.5rem;
+      align-items: center;
+      transition: all 0.35s;
+      position: relative;
+      overflow: hidden;
+    }
+    .layer:hover {
+      border-color: rgba(0, 240, 255, 0.25);
+      transform: translateX(6px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .layer-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--cyan);
+      opacity: 0.5;
+    }
+    .layer h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      letter-spacing: -0.02em;
+    }
+    .layer p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .layer-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--magenta);
+      margin-bottom: 0.35rem;
+    }
+
+    /* Process nodes */
+    .nodes {
+      max-width: 1100px;
+      margin: 0 auto 5rem;
+      padding: 0 1.5rem;
+    }
+    .nodes-title {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem;
+    }
+    .node-card {
+      background: rgba(10, 12, 22, 0.7);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 1rem;
+      padding: 1.6rem;
+      text-align: center;
+      transition: all 0.35s;
+    }
+    .node-card:hover {
+      border-color: rgba(0, 240, 255, 0.3);
+      transform: translateY(-5px);
+    }
+    .node-size {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.8rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+    }
+    .node-card h4 {
+      font-size: 1rem;
+      margin-bottom: 0.4rem;
+    }
+    .node-card p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    /* Challenges */
+    .challenges {
+      max-width: 1000px;
+      margin: 0 auto 5rem;
+      padding: 0 1.5rem;
+    }
+    .challenge {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2.5rem;
+      align-items: center;
+    }
+    .challenge:nth-child(even) {
+      direction: rtl;
+    }
+    .challenge:nth-child(even) > * {
+      direction: ltr;
+    }
+    .challenge-visual {
+      height: 200px;
+      background: rgba(10, 12, 22, 0.6);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 1.1rem;
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .challenge-content h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.7rem;
+      letter-spacing: -0.02em;
+    }
+    .challenge-content p {
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.55;
+      margin-bottom: 1rem;
+    }
+    .challenge-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      color: var(--amber);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Mini chip visual */
+    .mini-chip {
+      width: 140px;
+      height: 140px;
+      position: relative;
+    }
+    .mini-chip .die {
+      position: absolute;
+      inset: 20px;
+      background: linear-gradient(135deg, #0a1628, #0d1f33);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .mini-chip .die::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        repeating-linear-gradient(0deg, transparent, transparent 6px, rgba(0,240,255,0.08) 6px, rgba(0,240,255,0.08) 7px),
+        repeating-linear-gradient(90deg, transparent, transparent 6px, rgba(0,240,255,0.08) 6px, rgba(0,240,255,0.08) 7px);
+    }
+    .mini-chip .pad {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--amber);
+      border-radius: 1px;
+      box-shadow: 0 0 6px var(--amber);
+    }
+    .mini-chip .glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(0,240,255,0.15), transparent 70%);
+      animation: chipPulse 3s ease-in-out infinite;
+    }
+    @keyframes chipPulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    /* Transistor array visual */
+    .transistor-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 14px);
+      gap: 6px;
+    }
+    .transistor-grid span {
+      width: 14px;
+      height: 14px;
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      border-radius: 2px;
+      background: rgba(0, 240, 255, 0.08);
+      animation: cellFlicker 2s ease-in-out infinite;
+    }
+    .transistor-grid span:nth-child(odd) { animation-delay: 0.3s; }
+    .transistor-grid span:nth-child(3n) { animation-delay: 0.6s; background: rgba(255,0,170,0.1); border-color: rgba(255,0,170,0.3); }
+    @keyframes cellFlicker {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* Path visual */
+    .path-visual {
+      width: 160px;
+      height: 80px;
+      position: relative;
+    }
+    .path-visual .line {
+      position: absolute;
+      height: 2px;
+      background: linear-gradient(90deg, var(--cyan), var(--magenta));
+      top: 50%;
+      left: 10px;
+      right: 10px;
+      transform: translateY(-50%);
+      opacity: 0.6;
+    }
+    .path-visual .node {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      top: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 0 10px currentColor;
+    }
+    .path-visual .node:nth-child(1) { left: 0; background: var(--cyan); color: var(--cyan); }
+    .path-visual .node:nth-child(2) { left: 50%; background: var(--violet); color: var(--violet); margin-left: -6px; }
+    .path-visual .node:nth-child(3) { right: 0; background: var(--magenta); color: var(--magenta); }
+    .path-visual .packet {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      top: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 0 8px #fff;
+      animation: packetMove 2s linear infinite;
+    }
+    @keyframes packetMove {
+      0% { left: 0; opacity: 1; }
+      100% { left: calc(100% - 6px); opacity: 0.3; }
+    }
+
+    /* CTA */
+    .page-cta {
+      text-align: center;
+      padding: 5rem 1.5rem 7rem;
+    }
+    .page-cta h2 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+    .page-cta p {
+      color: var(--muted);
+      margin-bottom: 2rem;
+      font-size: 1.05rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.95rem 1.8rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.35s;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #000;
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.25);
+    }
+    .btn:hover {
+      transform: scale(1.04) translateY(-2px);
+      box-shadow: 0 0 50px rgba(0, 240, 255, 0.4);
+    }
+
+    footer {
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    footer a { color: var(--cyan); text-decoration: none; }
+
+    .reveal { opacity: 0; transform: translateY(30px); }
+
+    @media (max-width: 700px) {
+      .layer { grid-template-columns: 1fr; gap: 0.8rem; }
+      .layer-num { font-size: 1.2rem; }
+      .challenge { grid-template-columns: 1fr; }
+      .challenge:nth-child(even) { direction: ltr; }
+      nav { padding: 1rem 1.2rem; }
+      .nav-links a:not(.back-link):not(.active) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="logo">
+      <span class="logo-mark">∑</span>
+      Semi Entropy
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="back-link">← Main</a>
+      <a href="semiconductor.html" class="active">Semiconductor</a>
+      <a href="quantum.html">Quantum</a>
+      <a href="experience.html">Experience</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="label">DOMAIN FOCUS</div>
+    <h1>Semiconductor <span>Warfare</span></h1>
+    <p>
+      We operate at every scale of the silicon stack — from individual transistors to full-chip integration. 
+      The goal is always the same: drive residual entropy to zero before tape-out.
+    </p>
+  </header>
+
+  <!-- Abstraction stack -->
+  <div class="stack">
+    <div class="layer reveal">
+      <div class="layer-num">01</div>
+      <div>
+        <div class="layer-tag">TRANSISTOR / DEVICE</div>
+        <h3>Device-Level Uncertainty</h3>
+        <p>Process variation, aging, and thermal noise create probabilistic behavior at the physical layer. We model these as entropy sources that must be bounded.</p>
+      </div>
+    </div>
+    <div class="layer reveal">
+      <div class="layer-num">02</div>
+      <div>
+        <div class="layer-tag">CELL / STANDARD CELL</div>
+        <h3>Library & Timing Closure</h3>
+        <p>Standard-cell characterization gaps and timing arc uncertainty. Formal and statistical methods collapse the remaining freedom in the library.</p>
+      </div>
+    </div>
+    <div class="layer reveal">
+      <div class="layer-num">03</div>
+      <div>
+        <div class="layer-tag">BLOCK / IP</div>
+        <h3>IP & Subsystem Verification</h3>
+        <p>Complex blocks (CPU, GPU, NPU, memory controllers) with massive state spaces. AI-guided stimulus + formal properties attack the highest-value unexplored regions.</p>
+      </div>
+    </div>
+    <div class="layer reveal">
+      <div class="layer-num">04</div>
+      <div>
+        <div class="layer-tag">SOC / FULL CHIP</div>
+        <h3>System-on-Chip Integration</h3>
+        <p>Cross-domain interactions, power intent, security properties, and emergent behavior. Entropy here is systemic — we treat the entire chip as one probability field.</p>
+      </div>
+    </div>
+    <div class="layer reveal">
+      <div class="layer-num">05</div>
+      <div>
+        <div class="layer-tag">PACKAGE / SYSTEM</div>
+        <h3>Package & System Context</h3>
+        <p>Signal integrity, thermal coupling, and multi-die integration. Verification must extend beyond the die edge.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Process nodes -->
+  <div class="nodes">
+    <div class="nodes-title">
+      <div class="label reveal">PROCESS REALITY</div>
+      <h2 class="reveal" style="font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 700; letter-spacing: -0.03em;">Where we operate</h2>
+    </div>
+    <div class="nodes-grid">
+      <div class="node-card reveal">
+        <div class="node-size">3nm</div>
+        <h4>Advanced Logic</h4>
+        <p>Extreme variation, GAA transistors, new failure modes. Entropy is highest here.</p>
+      </div>
+      <div class="node-card reveal">
+        <div class="node-size">5nm</div>
+        <h4>High-Performance</h4>
+        <p>Mature but still complex. Perfect ground for hybrid formal + AI flows.</p>
+      </div>
+      <div class="node-card reveal">
+        <div class="node-size">7–12nm</div>
+        <h4>Volume Production</h4>
+        <p>Cost-sensitive. Coverage efficiency and escape reduction matter most.</p>
+      </div>
+      <div class="node-card reveal">
+        <div class="node-size">Specialized</div>
+        <h4>Analog / Mixed-Signal</h4>
+        <p>Continuous state spaces. Different entropy. Different weapons required.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key challenges -->
+  <div class="challenges">
+    <div class="label reveal" style="text-align:center; margin-bottom: 0.8rem;">HARD PROBLEMS</div>
+    <h2 class="reveal" style="text-align:center; font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 700; letter-spacing: -0.03em; margin-bottom: 3rem;">Problems we actually solve</h2>
+
+    <div class="challenge reveal">
+      <div class="challenge-visual">
+        <div class="mini-chip">
+          <div class="die"></div>
+          <div class="pad" style="top:12px; left:30px;"></div>
+          <div class="pad" style="top:12px; right:30px;"></div>
+          <div class="pad" style="bottom:12px; left:30px;"></div>
+          <div class="pad" style="bottom:12px; right:30px;"></div>
+          <div class="glow"></div>
+        </div>
+      </div>
+      <div class="challenge-content">
+        <div class="challenge-tag">ESCAPE PREVENTION</div>
+        <h3>Late-stage bugs that survive</h3>
+        <p>The bugs that reach silicon are the ones classical constrained-random missed. We quantify residual risk and deliberately hunt the long-tail states.</p>
+      </div>
+    </div>
+
+    <div class="challenge reveal">
+      <div class="challenge-visual">
+        <div class="transistor-grid">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+      <div class="challenge-content">
+        <div class="challenge-tag">STATE SPACE EXPLOSION</div>
+        <h3>Too many states to explore</h3>
+        <p>Modern blocks have more reachable states than atoms in the planet. Brute force is impossible. Information-theoretic prioritization is mandatory.</p>
+      </div>
+    </div>
+
+    <div class="challenge reveal">
+      <div class="challenge-visual">
+        <div class="path-visual">
+          <div class="line"></div>
+          <div class="node"></div>
+          <div class="node"></div>
+          <div class="node"></div>
+          <div class="packet"></div>
+        </div>
+      </div>
+      <div class="challenge-content">
+        <div class="challenge-tag">CROSS-LAYER EFFECTS</div>
+        <h3>Bugs that only appear at integration</h3>
+        <p>Power, clock, security, and coherency interactions create emergent behavior. We treat the full chip as a single entangled system.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-cta">
+    <h2 class="reveal">Silicon does not forgive.</h2>
+    <p class="reveal">Neither do we. Let’s talk about your next node.</p>
+    <a href="mailto:hello@semi-entropy.ai" class="btn reveal">hello@semi-entropy.ai</a>
+  </div>
+
+  <footer>
+    <p>
+      Semiconductor · <a href="index.html">Semi Entropy</a> · <a href="quantum.html">Quantum Sketches</a> · © 2026
+    </p>
+  </footer>
+
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray('.reveal').forEach((el, i) => {
+      gsap.fromTo(el,
+        { opacity: 0, y: 35 },
+        {
+          opacity: 1, y: 0, duration: 0.8, delay: (i % 5) * 0.05,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 90%' }
+        }
+      );
+    });
+  </script>
+</body>
+</html>

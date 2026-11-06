@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Experience — Semi Entropy</title>
+  <meta name="theme-color" content="#020205" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+  <style>
+    :root {
+      --bg: #020205;
+      --text: #e8f4ff;
+      --muted: #6b7c8f;
+      --cyan: #00f0ff;
+      --magenta: #ff00aa;
+      --violet: #8b5cf6;
+      --amber: #ffaa00;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      scroll-behavior: auto;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    /* Cursor */
+    #cursor {
+      position: fixed;
+      width: 16px; height: 16px;
+      border: 1.5px solid var(--cyan);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99999;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: difference;
+      transition: width 0.25s, height 0.25s, background 0.25s;
+    }
+    #cursor.big {
+      width: 50px; height: 50px;
+      background: rgba(0,240,255,0.1);
+      border-color: transparent;
+    }
+    #cursor-dot {
+      position: fixed;
+      width: 4px; height: 4px;
+      background: var(--cyan);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99999;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Nav */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 1.2rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      mix-blend-mode: difference;
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .logo-mark {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--cyan), var(--magenta));
+      display: grid;
+      place-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #000;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: color 0.25s;
+    }
+    .nav-links a:hover { color: var(--cyan); }
+
+    /* ========== HERO ========== */
+    .hero {
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      padding: 2rem;
+    }
+    .hero-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--cyan);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+    }
+    .hero h1 {
+      font-size: clamp(3rem, 10vw, 7.5rem);
+      font-weight: 700;
+      letter-spacing: -0.05em;
+      line-height: 0.92;
+      max-width: 11ch;
+      opacity: 0;
+    }
+    .hero h1 span {
+      background: linear-gradient(90deg, var(--cyan), var(--magenta));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      margin-top: 1.5rem;
+      color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 28rem;
+      opacity: 0;
+    }
+    .scroll-hint {
+      position: absolute;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      opacity: 0;
+    }
+
+    /* ========== SCROLL STORYTELLING ========== */
+    .story {
+      position: relative;
+      padding: 0 0 20vh;
+    }
+
+    .story-panel {
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .story-content {
+      max-width: 700px;
+      padding: 2rem;
+      text-align: center;
+      z-index: 2;
+    }
+    .story-content .num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      color: var(--cyan);
+      margin-bottom: 1rem;
+    }
+    .story-content h2 {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1.2rem;
+    }
+    .story-content p {
+      color: var(--muted);
+      font-size: 1.15rem;
+      line-height: 1.6;
+    }
+
+    /* Background orbs that move with scroll */
+    .story-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.25;
+    }
+    .orb-1 {
+      width: 400px; height: 400px;
+      background: var(--cyan);
+      top: 20%; left: -10%;
+    }
+    .orb-2 {
+      width: 350px; height: 350px;
+      background: var(--magenta);
+      bottom: 10%; right: -5%;
+    }
+    .orb-3 {
+      width: 300px; height: 300px;
+      background: var(--violet);
+      top: 40%; right: 20%;
+    }
+
+    /* ========== DISTORTION GALLERY ========== */
+    .gallery-section {
+      padding: 15vh 0 20vh;
+      position: relative;
+    }
+    .gallery-header {
+      text-align: center;
+      margin-bottom: 4rem;
+      padding: 0 1.5rem;
+    }
+    .gallery-header .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      color: var(--cyan);
+      margin-bottom: 1rem;
+    }
+    .gallery-header h2 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .gallery-track {
+      display: flex;
+      gap: 2rem;
+      padding: 0 10vw;
+      width: max-content;
+    }
+
+    .gallery-item {
+      width: 340px;
+      height: 420px;
+      position: relative;
+      border-radius: 1.2rem;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #0a0c14;
+      border: 1px solid rgba(255,255,255,0.06);
+      will-change: transform;
+    }
+
+    .gallery-item .visual {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      transition: transform 0.1s linear;
+    }
+
+    .gallery-item .info {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 1.5rem;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      z-index: 2;
+    }
+    .gallery-item .info span {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+    }
+    .gallery-item .info h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-top: 0.3rem;
+    }
+
+    /* Generative visuals inside gallery items */
+    .viz-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 16px);
+      gap: 4px;
+    }
+    .viz-grid i {
+      width: 16px; height: 16px;
+      border-radius: 2px;
+      background: rgba(0,240,255,0.15);
+      border: 1px solid rgba(0,240,255,0.25);
+      animation: cellPulse 2.5s ease-in-out infinite;
+    }
+    .viz-grid i:nth-child(3n) { background: rgba(255,0,170,0.12); border-color: rgba(255,0,170,0.3); animation-delay: 0.4s; }
+    .viz-grid i:nth-child(5n) { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.3); animation-delay: 0.8s; }
+    @keyframes cellPulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    .viz-rings {
+      width: 160px; height: 160px;
+      position: relative;
+    }
+    .viz-rings span {
+      position: absolute;
+      inset: 0;
+      border: 1.5px solid rgba(0,240,255,0.3);
+      border-radius: 50%;
+      animation: ringSpin 8s linear infinite;
+    }
+    .viz-rings span:nth-child(2) { inset: 25px; border-color: rgba(255,0,170,0.35); animation-duration: 5s; animation-direction: reverse; }
+    .viz-rings span:nth-child(3) { inset: 50px; border-color: rgba(139,92,246,0.4); animation-duration: 3s; }
+    .viz-rings span:nth-child(4) {
+      inset: 70px;
+      background: radial-gradient(circle, #fff 0%, var(--cyan) 40%, transparent 70%);
+      border: none;
+      animation: none;
+      box-shadow: 0 0 30px var(--cyan);
+    }
+    @keyframes ringSpin { to { transform: rotate(360deg); } }
+
+    .viz-wave {
+      width: 180px;
+      height: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .viz-wave::before {
+      content: '';
+      position: absolute;
+      width: 200%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 10px,
+        var(--cyan) 10px,
+        var(--cyan) 12px
+      );
+      opacity: 0.5;
+      animation: waveSlide 1.2s linear infinite;
+    }
+    @keyframes waveSlide { to { transform: translateX(-24px); } }
+
+    .viz- entangle {
+      width: 180px;
+      height: 100px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+    }
+    .viz-entangle {
+      width: 180px;
+      height: 100px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+    }
+    .viz-entangle .q {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 2px solid;
+      display: grid;
+      place-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+    }
+    .viz-entangle .q1 { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 15px rgba(0,240,255,0.3); }
+    .viz-entangle .q2 { border-color: var(--magenta); color: var(--magenta); box-shadow: 0 0 15px rgba(255,0,170,0.3); }
+    .viz-entangle .link {
+      position: absolute;
+      left: 50px; right: 50px;
+      height: 2px;
+      top: 50%;
+      background: linear-gradient(90deg, var(--cyan), var(--magenta));
+      opacity: 0.5;
+    }
+
+    .viz-collapse {
+      width: 140px; height: 140px;
+      position: relative;
+    }
+    .viz-collapse span {
+      position: absolute;
+      left: 50%; top: 50%;
+      border: 1.5px solid var(--cyan);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: collapseIn 3s ease-out infinite;
+    }
+    .viz-collapse span:nth-child(1) { width: 130px; height: 130px; animation-delay: 0s; }
+    .viz-collapse span:nth-child(2) { width: 90px; height: 90px; border-color: var(--violet); animation-delay: 0.4s; }
+    .viz-collapse span:nth-child(3) { width: 50px; height: 50px; border-color: var(--magenta); animation-delay: 0.8s; }
+    .viz-collapse span:nth-child(4) {
+      width: 14px; height: 14px;
+      background: #fff;
+      border: none;
+      box-shadow: 0 0 20px #fff;
+      animation: none;
+    }
+    @keyframes collapseIn {
+      0% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+      30% { opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+    }
+
+    .viz-chip {
+      width: 120px; height: 120px;
+      position: relative;
+    }
+    .viz-chip .die {
+      position: absolute;
+      inset: 15px;
+      background: linear-gradient(135deg, #0a1628, #0d1f33);
+      border: 1px solid rgba(0,240,255,0.35);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .viz-chip .die::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(0,240,255,0.1) 5px, rgba(0,240,255,0.1) 6px),
+        repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(0,240,255,0.1) 5px, rgba(0,240,255,0.1) 6px);
+    }
+    .viz-chip .glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle, rgba(0,240,255,0.2), transparent 70%);
+      animation: chipGlow 2.5s ease-in-out infinite;
+    }
+    @keyframes chipGlow {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* ========== FINAL ========== */
+    .final {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 2rem;
+    }
+    .final h2 {
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.2rem;
+    }
+    .final p {
+      color: var(--muted);
+      font-size: 1.15rem;
+      margin-bottom: 2.5rem;
+      max-width: 30rem;
+    }
+    .btn {
+      display: inline-flex;
+      padding: 1rem 2rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #000;
+      box-shadow: 0 0 40px rgba(0,240,255,0.3);
+      transition: all 0.35s;
+    }
+    .btn:hover {
+      transform: scale(1.05) translateY(-2px);
+      box-shadow: 0 0 60px rgba(0,240,255,0.5);
+    }
+
+    footer {
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    footer a { color: var(--cyan); text-decoration: none; }
+
+    @media (max-width: 700px) {
+      .gallery-item { width: 280px; height: 360px; }
+      .nav-links a:not(:last-child) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="cursor"></div>
+  <div id="cursor-dot"></div>
+
+  <nav>
+    <a href="index.html" class="logo">
+      <span class="logo-mark">∑</span>
+      Semi Entropy
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Main</a>
+      <a href="semiconductor.html">Semiconductor</a>
+      <a href="quantum.html">Quantum</a>
+      <a href="experience.html">Experience</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-label">SCROLL EXPERIENCE</div>
+    <h1>Watch entropy<br><span>collapse</span></h1>
+    <p>A visual journey through how uncertainty is measured, attacked, and destroyed inside silicon.</p>
+    <div class="scroll-hint">SCROLL TO BEGIN</div>
+  </header>
+
+  <!-- SCROLL STORYTELLING -->
+  <div class="story">
+    <div class="story-panel" data-panel="1">
+      <div class="story-bg">
+        <div class="orb orb-1"></div>
+      </div>
+      <div class="story-content">
+        <div class="num">01 — OBSERVE</div>
+        <h2>Everything begins as possibility</h2>
+        <p>A design arrives as a cloud of potential behaviors. Waveforms, RTL, assertions — all of it is still unresolved probability.</p>
+      </div>
+    </div>
+
+    <div class="story-panel" data-panel="2">
+      <div class="story-bg">
+        <div class="orb orb-2"></div>
+      </div>
+      <div class="story-content">
+        <div class="num">02 — MEASURE</div>
+        <h2>We quantify the unknown</h2>
+        <p>Residual entropy is calculated. What can this chip still do that verification has never forced it to reveal?</p>
+      </div>
+    </div>
+
+    <div class="story-panel" data-panel="3">
+      <div class="story-bg">
+        <div class="orb orb-3"></div>
+      </div>
+      <div class="story-content">
+        <div class="num">03 — ATTACK</div>
+        <h2>Targeted collapse begins</h2>
+        <p>AI agents, formal engines, and generative models launch coordinated strikes on the highest-value unexplored states.</p>
+      </div>
+    </div>
+
+    <div class="story-panel" data-panel="4">
+      <div class="story-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+      </div>
+      <div class="story-content">
+        <div class="num">04 — COLLAPSE</div>
+        <h2>Possibility space shrinks</h2>
+        <p>Each successful proof and coverage hit removes freedom. The design is forced into a smaller and smaller set of behaviors until almost nothing remains uncertain.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISTORTION GALLERY -->
+  <section class="gallery-section">
+    <div class="gallery-header">
+      <div class="label">VISUAL ARCHIVE</div>
+      <h2>Distortion Gallery</h2>
+    </div>
+
+    <div class="gallery-track" id="galleryTrack">
+      <div class="gallery-item">
+        <div class="visual">
+          <div class="viz-grid">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+        <div class="info">
+          <span>ARCHIVE 01</span>
+          <h3>Transistor Matrix</h3>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <div class="visual">
+          <div class="viz-rings">
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="info">
+          <span>ARCHIVE 02</span>
+          <h3>Superposition Field</h3>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <div class="visual">
+          <div class="viz-wave"></div>
+        </div>
+        <div class="info">
+          <span>ARCHIVE 03</span>
+          <h3>Signal Propagation</h3>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <div class="visual">
+          <div class="viz-entangle">
+            <div class="q q1">|ψ⟩</div>
+            <div class="link"></div>
+            <div class="q q2">|φ⟩</div>
+          </div>
+        </div>
+        <div class="info">
+          <span>ARCHIVE 04</span>
+          <h3>Property Entanglement</h3>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <div class="visual">
+          <div class="viz-collapse">
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="info">
+          <span>ARCHIVE 05</span>
+          <h3>Entropy Collapse</h3>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <div class="visual">
+          <div class="viz-chip">
+            <div class="die"></div>
+            <div class="glow"></div>
+          </div>
+        </div>
+        <div class="info">
+          <span>ARCHIVE 06</span>
+          <h3>Silicon Die</h3>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <div class="visual">
+          <div class="viz-rings">
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="info">
+          <span>ARCHIVE 07</span>
+          <h3>Certainty Core</h3>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <div class="visual">
+          <div class="viz-grid">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+        <div class="info">
+          <span>ARCHIVE 08</span>
+          <h3>Coverage Surface</h3>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL -->
+  <section class="final">
+    <h2>The only acceptable<br>entropy is zero.</h2>
+    <p>Everything else is just postponed failure.</p>
+    <a href="mailto:hello@semi-entropy.ai" class="btn">Start the negotiation</a>
+  </section>
+
+  <footer>
+    <a href="index.html">Semi Entropy</a> · Experience · <a href="semiconductor.html">Semiconductor</a> · <a href="quantum.html">Quantum</a>
+  </footer>
+
+  <script>
+    // Cursor
+    const cursor = document.getElementById('cursor');
+    const cursorDot = document.getElementById('cursor-dot');
+    let mx = 0, my = 0, cx = 0, cy = 0;
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursorDot.style.left = mx + 'px';
+      cursorDot.style.top = my + 'px';
+    });
+    (function loop() {
+      cx += (mx - cx) * 0.15;
+      cy += (my - cy) * 0.15;
+      cursor.style.left = cx + 'px';
+      cursor.style.top = cy + 'px';
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('a, .gallery-item').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add('big'));
+      el.addEventListener('mouseleave', () => cursor.classList.remove('big'));
+    });
+
+    // Lenis + GSAP
+    gsap.registerPlugin(ScrollTrigger);
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true
+    });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add(time => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+
+    // Hero entrance
+    gsap.to('.hero-label', { opacity: 1, duration: 1, delay: 0.2 });
+    gsap.to('.hero h1', { opacity: 1, duration: 1.1, delay: 0.4, ease: 'power3.out' });
+    gsap.to('.hero p', { opacity: 1, duration: 1, delay: 0.7 });
+    gsap.to('.scroll-hint', { opacity: 0.6, duration: 1, delay: 1.1 });
+
+    // Story panels - fade + slight scale
+    gsap.utils.toArray('.story-panel').forEach((panel, i) => {
+      const content = panel.querySelector('.story-content');
+      const orbs = panel.querySelectorAll('.orb');
+
+      gsap.fromTo(content,
+        { opacity: 0, y: 60 },
+        {
+          opacity: 1, y: 0,
+          scrollTrigger: {
+            trigger: panel,
+            start: 'top 70%',
+            end: 'top 20%',
+            scrub: 1
+          }
+        }
+      );
+
+      orbs.forEach((orb, j) => {
+        gsap.to(orb, {
+          y: (j % 2 === 0 ? -80 : 80),
+          x: (j % 2 === 0 ? 40 : -40),
+          scrollTrigger: {
+            trigger: panel,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 1.5
+          }
+        });
+      });
+    });
+
+    // ===== GALLERY DISTORTION BY SCROLL =====
+    const track = document.getElementById('galleryTrack');
+    const items = gsap.utils.toArray('.gallery-item');
+
+    // Horizontal scroll of gallery
+    const scrollTween = gsap.to(track, {
+      x: () => -(track.scrollWidth - window.innerWidth + 100),
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '.gallery-section',
+        start: 'top top',
+        end: () => '+=' + (track.scrollWidth - window.innerWidth),
+        scrub: 1,
+        pin: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true
+      }
+    });
+
+    // Distortion effect on each item based on position relative to center
+    items.forEach(item => {
+      const visual = item.querySelector('.visual');
+
+      gsap.to(item, {
+        scrollTrigger: {
+          trigger: item,
+          containerAnimation: scrollTween,
+          start: 'left 80%',
+          end: 'right 20%',
+          scrub: 1,
+          onUpdate: self => {
+            const p = self.progress;
+            // Distortion: scale + rotateY + skew based on distance from center
+            const dist = (p - 0.5) * 2; // -1 to 1
+            const scale = 1 - Math.abs(dist) * 0.12;
+            const rotateY = dist * 18;
+            const skewX = dist * 4;
+            const brightness = 1 - Math.abs(dist) * 0.25;
+
+            gsap.set(item, {
+              scale: scale,
+              rotateY: rotateY,
+              skewX: skewX,
+              filter: `brightness(${brightness})`,
+              transformPerspective: 800
+            });
+
+            // Parallax the inner visual
+            gsap.set(visual, {
+              x: dist * 30,
+              scale: 1 + Math.abs(dist) * 0.08
+            });
+          }
+        }
+      });
+    });
+
+    // Refresh on resize
+    window.addEventListener('resize', () => ScrollTrigger.refresh());
+  </script>
+</body>
+</html>
